@@ -16,6 +16,8 @@ library(gridExtra)
 library(ape)
 library(stargazer)
 
+#setwd("/home/enourani/ownCloud/Work/Projects/seabirds_and_storms/R_files/data_public")
+
 ### STEP 1: Open all input data ------------------------------------ #####
 
 load("used_alt_annotated.RData") #ann_30; this file contains used and alternative steps (hourly). This will be used for permutation tests.
@@ -213,6 +215,46 @@ axisPhylo()
 w <- 1/cophenetic(trees[[1]]) #Computes the cophenetic distances for a hierarchical clustering.
 diag(w) <- 0 #set the diagonal to 0
 
+
+########## lm without the two large ponints
+lm_n <- lm_input %>% 
+  arrange(wing.loading..Nm.2.) %>% 
+  slice(1:18)
+
+morph_n <- lm(max_wind_ms ~ wing.loading..Nm.2., data = lm_n) #adR = 0.31 , AIC =  119.2178
+
+#plot
+png("/home/enourani/ownCloud/Work/Projects/seabirds_and_storms/paper prep/Curr_Biol/revisions/lm_outliers_removed.png", units = "in",
+    width = 6, height = 5, res = 300)
+
+ggplot(lm_n, aes(x = wing.loading..Nm.2.)) +
+  geom_smooth(aes(y = max_wind_ms), method = "lm", color = clr, alpha = .1, fill = clr) +
+  geom_point(aes(y = max_wind_ms, shape = flight_style), size = 2, stroke = 0.8, color = clr) +
+  labs(x = expression("Wing loading (Nm"^-2*")")) +
+  scale_shape_manual(values = c(4,0,2,1)) + #filled points: c(15, 17, 19)
+  scale_y_continuous(
+    name = expression("Maximum wind speed (m s"^-1*")")) +# Features of the first axis
+  theme_minimal() + #theme_ipsum() looks better
+  theme(axis.title.y = element_text(size = 13)) +
+  guides(shape = guide_legend("Flight style:"))
+
+dev.off()
+
+########## make predictions using the lm
+new_data <- data.frame(sci_name = c("Uria lomvia", "Rissa tridactyla", "Fulmarus glacialis", "Fratercula arctica", "Uria aalge"), 
+                       species = c("Thick-billed murre", "Black-legged kittiwake", "Northern fulmar", "Atlantic Puffin", "Common murre"), 
+                       max_wind_ms = rep(NA, 5), wing.loading..Nm.2. = c(154.23, 37.55, 70.88, 106, 184), 
+                       actual_wind = c(22, 22, 22, 13.8, 9.16), #based on the suppl table
+                       actual_wind_threshold = rep(15,5)) #based on the text, they considered 15 m/s as the threshold
+
+preds <- predict(morph, new_data, se.fit = T, interval = "confidence")
+
+
+plot(new_data$actual_wind, preds$fit[,1])
+
+new_data$fit <- preds$fit
+new_data$se <- preds$se.fit
+
 ### Plot Fig. S6 -------------------------------------------------------------------------
 #save the tree as supplementary material
 X11(width = 6, height = 7)
@@ -280,7 +322,25 @@ str_var$flight_style_F <- factor(str_var$flight_style)
 
 X11(width = 11, height = 5)
 #plot for linear model predicting wind speed
-lm_maxwind <- ggplot(str_var, aes(x = wing.loading..Nm.2.)) +
+(lm_maxwind <- ggplot(str_var, aes(x = wing.loading..Nm.2.)) +
+  geom_smooth(aes(y = max_wind_ms), method = "lm", color = clr, alpha = .1, fill = clr) +
+  geom_point(aes(y = max_wind_ms, shape = flight_style_F), size = 2, stroke = 0.8, color = clr) +
+  #geom_errorbar(data = new_data, aes(x = wing.loading..Nm.2., ymin =  fit[,2], ymax = fit[,3]), width = 0.2) +
+  #geom_point(data = new_data, aes(x = wing.loading..Nm.2., y = fit[,1])) +
+  geom_point(data = new_data, aes(x = wing.loading..Nm.2., y = actual_wind), color = "red") +
+  geom_text(data = new_data, aes(x = wing.loading..Nm.2., y = actual_wind, label = species), hjust = 0.5,  vjust = -1, 
+            size = 2.5) +
+  labs(x = expression("Wing loading (Nm"^-2*")")) +
+    xlim(30, 190) +
+  scale_shape_manual(values = c(4,0,2,1)) + #filled points: c(15, 17, 19)
+  scale_y_continuous(
+    name = expression("Maximum wind speed (m s"^-1*")")) +# Features of the first axis
+  theme_minimal() + #theme_ipsum() looks better
+  theme(axis.title.y = element_text(size = 13)) +
+  guides(shape = guide_legend("Flight style:")))
+
+#updated version with predicted points
+ggplot(str_var, aes(x = wing.loading..Nm.2.)) +
   geom_smooth(aes(y = max_wind_ms), method = "lm", color = clr, alpha = .1, fill = clr) +
   geom_point(aes(y = max_wind_ms, shape = flight_style_F), size = 2, stroke = 0.8, color = clr) +
   labs(x = expression("Wing loading (Nm"^-2*")")) +
@@ -290,6 +350,7 @@ lm_maxwind <- ggplot(str_var, aes(x = wing.loading..Nm.2.)) +
   theme_minimal() + #theme_ipsum() looks better
   theme(axis.title.y = element_text(size = 13)) +
   guides(shape = guide_legend("Flight style:"))
+
 
 #plot for linear model predicting wind covariance
 lm_covwind <- ggplot(str_var, aes(x = wing.loading..Nm.2.)) +
