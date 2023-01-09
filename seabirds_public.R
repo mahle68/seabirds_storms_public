@@ -22,7 +22,7 @@ lm_input <- readRDS("species_summary_data_with_ranges.RDS") #this file contains 
 ann <- readRDS("annotated_data_hrly.rds") #this file contains sub-sampled hourly data annotated with atmospheric information (this is the full dataset that was used for generating alternative steps)
 raw_wind <- readRDS("wind_at_breeding_range.rds") #this file contains wind speed data at the breeding range (during breeding season) for each species. Caution: large file!
 
-#----- STEP 2: calculate within-stratum variances (+ plot Fig S1)-------------------------
+#----- STEP 2: calculate within-stratum variances (+ plot Fig S2)-------------------------
 
 #calculate and plot within stratum variances
 data_var <- ann_30 %>%
@@ -31,7 +31,7 @@ data_var <- ann_30 %>%
             species = head(species, 1)) %>%
   ungroup()
 
-# ------------------------------------------------------ plot Figure S1:
+# ------------------------------------------------------ plot Figure S2:
 X11(width = 5, height = 5)
 ggplot(data_var, aes(x = wspd_cov, y = reorder(as.factor(species), desc(as.factor(species))), height = stat(density))) + 
   geom_density_ridges(
@@ -42,7 +42,7 @@ ggplot(data_var, aes(x = wspd_cov, y = reorder(as.factor(species), desc(as.facto
   labs(y = "", x = "Coefficient of variation (%)") +
   theme_minimal()
 
-#----- STEP 3: permutation test (+ plot Figs S2, S3)--------------------------------------
+#----- STEP 3: permutation test (+ plot Fig S3)--------------------------------------
 
 #In each stratum, is the difference between selected and max available wind speed higher than expected by chance?
 #for each stratum, calculate the difference between observed wind speed and max wind speed (incl. observed)
@@ -108,7 +108,7 @@ stopCluster(mycl)
 
 # P_vals is available as "p_vals_1000_perm.rds"
 
-# ------------------------------------------------------ plot Figure S2:
+# ------------------------------------------------------ plot Figure S3 A:
 
 X11(width = 5, height = 5)
 ggplot(p_vals, aes(x = p_more, y = reorder(as.factor(species), desc(as.factor(species))), height = stat(density))) + 
@@ -120,7 +120,7 @@ ggplot(p_vals, aes(x = p_more, y = reorder(as.factor(species), desc(as.factor(sp
   labs(y = "", x = "Significance") +
   theme_minimal()
 
-# ------------------------------------------------------ plot Figure S3:
+# ------------------------------------------------------ plot Figure S3 B:
 
 #extract strata with significant avoidance of strong winds (p-value less than 0.05)
 sig <- p_vals %>%
@@ -159,7 +159,7 @@ ggplot(sig_data, aes(x = wind_speed, y = stratum)) +
         axis.text.y = element_blank(),
         legend.title = element_blank())
 
-#----- STEP 4: linear models (+ plot Fig 4)--------------------------------------
+#----- STEP 4: linear models (+ plot Fig 3)--------------------------------------
 
 # maximum encountered wind as a function of wing loading
 m1 <- lm(max_wind ~ wing.loading..Nm.2., data = lm_input) # adjRsq = 0.31  
@@ -170,7 +170,7 @@ m2 <- lm(wing.loading..Nm.2. ~ range_median, data = lm_input) # adjRsq = 0.3463
 # wing loading as a function of maximum wind conditions at breeding range
 m3 <- lm(wing.loading..Nm.2. ~ range_max, data = lm_input) # adjRsq = -0.04219 
 
-# ------------------------------------------------------ plot Figure 4:
+# ------------------------------------------------------ plot Figure 3:
 #convert to long form for plotting
 long_df <- lm_input %>% 
   group_by(species) %>% 
@@ -184,6 +184,7 @@ long_df <- lm_input %>%
 clr <- oce::oceColorsPalette(120)[14]
 clr2 <- oce::oceColorsPalette(120)[105]
 
+#color version with 1 panel
 ggplot(long_df, aes(x = wing.loading..Nm.2., y = wind_speed, col = wind_source, fill = wind_source)) +
   geom_smooth(aes(y = wind_speed, group = wind_source), method = "lm", alpha = .1, level = .95) + #95% standard error
   geom_point(aes(y = wind_speed, shape = flight_style), size = 1.5, stroke = 0.8) +
@@ -195,6 +196,21 @@ ggplot(long_df, aes(x = wing.loading..Nm.2., y = wind_speed, col = wind_source, 
   theme_minimal() + 
   guides(shape = guide_legend("Flight style:"))
 
+
+#grayscale version with 3 panels
+ggplot(long_df, aes(x = wing.loading..Nm.2., y = wind_speed)) +
+  geom_smooth(aes(y = wind_speed, group = wind_source), color = "black", method = "lm", alpha = .1, level = .95, lwd = 0.5) + #95% standard error
+  geom_point(aes(y = wind_speed, shape = flight_style), size = 0.9, stroke = 0.8) +
+  labs(x = expression("Wing loading (Nm"^-2*")"),
+       y = expression("Wind speed (m s"^-1*")")) +
+  scale_shape_manual(values = c(4,0,2,1)) +
+  facet_wrap(~ wind_source, labeller = labeller(wind_source = c( "max_wind_ms" = "Maximum wind speed \n encountered", 
+                                                                 "range_max" = "Maximum wind speed \n at breeding range", 
+                                                                 "range_median" = "Median windspeed \n at breeding range"))) +
+  theme_minimal() + 
+  guides(shape = guide_legend("Flight style:")) +
+  theme(legend.title = element_text(size = 11),
+        strip.text = element_text(size = 12))
 
 #----- STEP 5: test for spatio-temporal autocorrelation --------------------------------------
 
@@ -219,7 +235,7 @@ summary_info <- ann %>%
 
 cor.test(summary_info$n_trips, summary_info$max_wind_ms) #R = 0.149
 
-#----- STEP 7: Plot Figure 2 ----------------------------------------------------------------
+#----- STEP 7: Plot Figure 1 ----------------------------------------------------------------
 
 #plotting this figure is computationally demanding. I suggest writing it directly to file.
 
@@ -278,7 +294,7 @@ ggplot(raw_wind, aes(x = wind_speed_ms, y = species_f)) +
 
 dev.off()
 
-#----- STEP 8: Plot Figure 3 ----------------------------------------------------------------
+#----- STEP 8: Plot Figure 2 ----------------------------------------------------------------
 #based on https://semba-blog.netlify.app/10/29/2018/animating-oceanographic-data-in-r-with-ggplot2-and-gganimate/
 
 #SESSION INFO ----------------------------------------------------------------
