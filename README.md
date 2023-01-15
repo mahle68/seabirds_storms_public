@@ -1,8 +1,6 @@
-# seabirds_storms_public
-# R script for reproducing the resutls of Nourani et al. 2023.
-# Data is stored on Edmond repository "seabirds’ wind niche" at https://doi.org/10.17617/3.8U7EHD
-
-Seabird morphology determines operational wind speeds, tolerable maxima and responses to extremes
+# Seabird morphology determines operational wind speeds, tolerable maxima and responses to extremes
+### R script for reproducing the resutls of Nourani et al. 2023.
+### Data is stored on Edmond repository "seabirds’ wind niche" at https://doi.org/10.17617/3.8U7EHD
 
 Nourani et al. 2023
 
