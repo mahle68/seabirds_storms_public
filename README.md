@@ -1,5 +1,5 @@
 # Seabird morphology determines operational wind speeds, tolerable maxima and responses to extremes
-### R script for reproducing the resutls of Nourani et al. 2023.
+### R script for reproducing the results of Nourani et al. 2023.
 ### Data is stored on Edmond repository "seabirds’ wind niche" at https://doi.org/10.17617/3.8U7EHD
 
 Summary:
